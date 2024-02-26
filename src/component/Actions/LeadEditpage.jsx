@@ -1,23 +1,26 @@
-import React, { useState } from "react";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import AlertSuccess from "../AlertSuccess";
 
-const LeadsForm = () => {
+const LeadEditpage = () => {
   const [autoFill, setAutoFill] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [alternateNumber, setAlternateNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-
-  // address state
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [pincode, setPincode] = useState("");
   const [state, setState] = useState("");
   const [country, setCountry] = useState("");
+  const [alertMessage, setAlertMessage] = useState(null);
+
+  let { id } = useParams();
 
   const handleAutoFillChange = () => {
-    if (mobileNumber !== "") {
+    if (mobileNumber !== null && mobileNumber !== "") {
       setAutoFill(!autoFill);
       if (!autoFill) {
         setWhatsappNumber(mobileNumber);
@@ -41,12 +44,6 @@ const LeadsForm = () => {
     }
   };
 
-  const handleAlternateNumberChange = (e) => {
-    const newValue = e.target.value;
-    if (isNumeric(newValue) || newValue === "") {
-      setAlternateNumber(newValue);
-    }
-  };
   const handleWhatsappNumberChange = (e) => {
     const newValue = e.target.value;
     if (isNumeric(newValue) || newValue === "") {
@@ -54,48 +51,107 @@ const LeadsForm = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission logic
-    console.log("Form Data:", {
-      firstName,
-      lastName,
-      email,
-      street,
-      city,
-      pincode,
-      state,
-      country,
-      mobileNumber,
-      whatsappNumber,
-      // Add other form data properties
-    });
+  const fetchLead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (token) {
+        const response = await axios.get(
+          `http://localhost:8000/api/v1/users/lead/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setFirstName(response.data.data.firstname);
+        setLastName(response.data.data.lastname);
+        setEmail(response.data.data.email);
+        setMobileNumber(response.data.data.phoneNumber.toString());
+        setWhatsappNumber(response.data.data.whatsappNumber.toString());
+        setStreet(response.data.data.address.street || "");
+        setCity(response.data.data.address.city || "");
+        setPincode(response.data.data.address.pincode || "");
+        setState(response.data.data.address.state || "");
+        setCountry(response.data.data.address.country || "");
+      }
+    } catch (error) {
+      console.error("Error fetching lead:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchLead();
+  }, []);
+
+  const saveLead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (token) {
+        const response = await axios.put(
+          `http://localhost:8000/api/v1/users/lead/${id}`,
+          {
+            firstname: firstName,
+            lastname: lastName,
+            email: email,
+            phoneNumber: parseInt(mobileNumber),
+            whatsappNumber: autoFill
+              ? parseInt(mobileNumber)
+              : parseInt(whatsappNumber),
+            address: {
+              street: street,
+              city: city,
+              pincode: pincode,
+              state: state,
+              country: country,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          setAlertMessage(response.data.message);
+        }
+        // Handle the response as needed
+      }
+    } catch (error) {
+      console.error("Error saving lead:", error.message);
+      // Handle the error as needed
+    }
   };
 
   return (
     <>
-      <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div className="border-b border-stroke py-3 px-4.5 dark:border-strokedark">
-          <h3 className="font-medium text-black dark:text-white">Leads</h3>
-        </div>
-        <form onSubmit={handleSubmit} className="font-thin ">
-          <div className="p-4  sm:p-4 lg:p-6 xl:p-8">
+      {alertMessage ? <AlertSuccess message={alertMessage} /> : <h1>failed</h1>}
+      <h3 className="text-title-lg mb-2 text-black-2 dark:text-white">
+        Edit Leads
+      </h3>
+      <div className="w-full p-2 mx-auto bg-white rounded-lg shadow-lg dark:border-strokedark dark:bg-boxdark">
+        <form className="font-thin ">
+          <div className="p-2  sm:p-2 lg:p-4 xl:p-6">
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
               <div className="w-full xl:w-1/3">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   First name <span className="text-meta-1">*</span>
                 </label>
                 <input
                   type="text"
                   name="firstname"
                   placeholder="first name"
+                  value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
 
-              {/* <div className="w-full xl:w-1/3">
-                <label className="mb-2.5 block text-black dark:text-white">
+              <div className="w-full xl:w-1/3">
+                <label className="mb-1 block text-black dark:text-white">
                   Middle name
                 </label>
                 <input
@@ -104,40 +160,40 @@ const LeadsForm = () => {
                   placeholder="middle name"
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
-              </div> */}
+              </div>
 
               <div className="w-full xl:w-1/3">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   Last name <span className="text-meta-1">*</span>
                 </label>
                 <input
                   type="text"
                   name="lastname"
                   placeholder="last name"
+                  value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
 
               <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   Email <span className="text-meta-1">*</span>
                 </label>
                 <input
                   type="email"
                   name="email"
                   placeholder="email address"
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
             </div>
-
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row"></div>
-
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
               <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   Date of Birth
                 </label>
                 <input
@@ -148,7 +204,7 @@ const LeadsForm = () => {
               </div>
 
               <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   Mobile Number <span className="text-meta-1">*</span>
                 </label>
                 <input
@@ -156,13 +212,13 @@ const LeadsForm = () => {
                   name="phoneNumber"
                   placeholder="mobile number"
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-                  value={mobileNumber}
+                  value={mobileNumber || ""}
                   onChange={handleMobileNumberChange}
                 />
               </div>
 
               <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   WhatsApp Number
                 </label>
                 <input
@@ -182,29 +238,14 @@ const LeadsForm = () => {
                   &nbsp; Fill WhatsApp if same as Mobile
                 </div>
               </div>
-
-              {/* <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
-                  Alternate Mobile Number
-                </label>
-                <input
-                  type="tel"
-                  placeholder=" alternate mobile number"
-                  className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-                  onChange={handleAlternateNumberChange}
-                  value={alternateNumber}
-                />
-              </div> */}
             </div>
-
-            <div className="mb-2.5 block text-black dark:text-white">
+            <div className="mb-1 block text-black dark:text-white">
               Address:
             </div>
-
             {/* First Line */}
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
               <div className="w-full xl:w-1/2">
-                <label className="mb-2.5 block text-black dark:text-white">
+                <label className="mb-1 block text-black dark:text-white">
                   Street
                 </label>
                 <input
@@ -226,10 +267,9 @@ const LeadsForm = () => {
                 />
               </div>
             </div>
-
             {/* Second Line */}
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
-              <div className="w-full xl:w-1/3">
+              <div className="w-full xl:w-1/2">
                 <label className="mb-2.5 block text-black dark:text-white">
                   Pincode
                 </label>
@@ -237,10 +277,11 @@ const LeadsForm = () => {
                   type="number"
                   placeholder="pincode"
                   onChange={(e) => setPincode(e.target.value)}
+                  value={pincode}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
-              <div className="w-full xl:w-1/3">
+              <div className="w-full xl:w-1/2">
                 <label className="mb-2.5 block text-black dark:text-white">
                   State
                 </label>
@@ -248,10 +289,11 @@ const LeadsForm = () => {
                   type="text"
                   placeholder="state"
                   onChange={(e) => setState(e.target.value)}
+                  value={state}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
-              <div className="w-full xl:w-1/3">
+              <div className="w-full xl:w-1/2">
                 <label className="mb-2.5 block text-black dark:text-white">
                   Country
                 </label>
@@ -259,16 +301,15 @@ const LeadsForm = () => {
                   type="text"
                   placeholder="country"
                   onChange={(e) => setCountry(e.target.value)}
+                  value={country}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
             </div>
-
-            {/* <div className="mb-2.5 block text-black dark:text-white">
+            <div className="mb-2.5 block text-black dark:text-white">
               Educational Details:
             </div>
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
-              
               <div className="w-full xl:1/4">
                 <label className="mb-2.5 block text-black dark:text-white">
                   Last Education
@@ -309,9 +350,8 @@ const LeadsForm = () => {
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
-            </div> */}
-
-            {/* <label className="mb-4.5 block text-black dark:text-white">
+            </div>{" "}
+            <label className="mb-4.5 block text-black dark:text-white">
               Last Work Experience:
             </label>
             <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
@@ -336,9 +376,8 @@ const LeadsForm = () => {
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-1.5 px-3 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 />
               </div>
-            </div> */}
-
-            {/* <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
+            </div>
+            <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
               <div className="w-full xl:w-1/2">
                 <div className="mb-2.5 block text-black dark:text-white">
                   Father Occupation
@@ -409,7 +448,15 @@ const LeadsForm = () => {
                   </span>
                 </div>
               </div>
-            </div> */}
+            </div>
+          </div>
+          <div className="flex justify-end mb-2 ">
+            <h3
+              className="inline-flex items-center justify-center bg-primary py-2 px-3 text-center font-medium text-white hover:bg-opacity-90 lg:px-4 xl:px-6 cursor-pointer"
+              onClick={saveLead}
+            >
+              Save
+            </h3>
           </div>
         </form>
       </div>
@@ -417,4 +464,4 @@ const LeadsForm = () => {
   );
 };
 
-export default LeadsForm;
+export default LeadEditpage;

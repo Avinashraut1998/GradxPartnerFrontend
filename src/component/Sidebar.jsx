@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import Logo from "../images/logo/White.svg";
+import { useAuth } from "../context/AuthContext";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   const { pathname } = location;
+
+  const { logout } = useAuth();
 
   const trigger = useRef(null);
   const sidebar = useRef(null);
@@ -58,7 +61,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     >
       {/* <!-- SIDEBAR HEADER --> */}
       <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
-        <NavLink to="/">
+        <NavLink to="/dashboard">
           <img src={Logo} alt="Logo" />
         </NavLink>
 
@@ -167,7 +170,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               <li>
                 <NavLink
                   onClick={() => {
-                    localStorage.clear();
+                    logout();
                   }}
                   to="/"
                   className="group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white "

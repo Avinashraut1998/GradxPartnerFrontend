@@ -51,7 +51,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }) => {
           </button>
           {/* <!-- Hamburger Toggle BTN --> */}
 
-          <Link className="block flex-shrink-0 lg:hidden" to="/">
+          <Link className="block flex-shrink-0 lg:hidden" to="/dashboard">
             <img className="hidden dark:block" src={LogoDark} alt="Logo" />
             <img className="dark:hidden" src={Logo} alt="Logo" />
           </Link>
